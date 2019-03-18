@@ -46,9 +46,14 @@ print('Inputs: \n Dictionary: {}\n HxW = {}x{}\n numBlocks = {}\n hWords = {}\n 
 ##################
 # HELPER METHODS #
 
-def printXW(puzzle, height, width):
-    for i in range(0, len(puzzle), height+1):
-        print(' '.join(puzzle[i:i+width]))
+def printXW(puzzle, width):
+    for index in range(len(puzzle)):  # matr is a string in this case
+        if index % width == 0:  # left side
+            print('{} '.format(puzzle[index]), end='')
+        elif index % width == width - 1:  # right side
+            print('{}\n'.format(puzzle[index]), end='')
+        else:
+            print('{} '.format(puzzle[index]), end='')
 
 
 def addVword(xw, vPos, hPos, word, width):
@@ -56,10 +61,9 @@ def addVword(xw, vPos, hPos, word, width):
     wordList = [letter for letter in word][::-1]
     for k in range(len(word)):
         index = (vPos + k)*width + hPos
-        if index > len(word)-1:
+        if index > len(xw)-1:
             print('Word doesn\'t fit in location.')
         wordIndexes.append(index)
-    print(wordIndexes)
     checkIndexes = {xw[i] for i in wordIndexes}
     if checkIndexes != {'-'}:
         print('Can\'t place word over non-empty space.')
@@ -67,19 +71,21 @@ def addVword(xw, vPos, hPos, word, width):
         newXW = ''
         for k in range(len(xw)):
             if k not in wordIndexes:
-                newXW += word[k:k+1]
-                print(word[k:k+1])
+                newXW += xw[k:k+1]
             else:
                 newXW += wordList.pop()
         return newXW
 
 
 def fillInputs(height, width, hWords, vWords):
-     xw = '-'*(height*width)
-     printXW(xw, height, width)
+     abc = ['a', 'b', 'c', 'd', 'e', 'f','g', 'h', 'i', 'j',
+            'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+            'u', 'v', 'w', 'x', 'y', 'z']
+     xw = ''.join([abc[num] for num in range(height*width)])
      for vWord in vWords:
         vPos, hPos, word = vWord
         xw = addVword(xw, vPos, hPos, word, width)
-     printXW(xw, height, width)
+     print('XW', xw)
+     printXW(xw, width)
 
 fillInputs(height, width, hWords, vWords)
