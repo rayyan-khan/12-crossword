@@ -106,12 +106,11 @@ def fillInputs(height, width, hWords, vWords):
      for hWord in hWords:
          vPos, hPos, word = hWord
          xw = addHword(xw, vPos, hPos, word, width)
-     printXW(xw, width)
      return xw
 
 
 def protectBoard(xw):
-    for index in xw:
+    for index in range(len(xw)):
         if xw[index] not in ('#', '-'):
             # if it's not one of those two its a letter
             xw = setIndex(xw, index, '~')
@@ -132,25 +131,82 @@ def palindromize(xw):
     return xw
 
 
+def checkEdges(xw, width, height):
+    block3 = set() # 3rd blocks away from the border
+    for index in range(len(xw)):
+        if index//width in (2, height - 3):
+            if index % width in (0, 1, width - 1, width - 2):
+                continue
+            block3.add(index)
+        elif index % width in (2, width - 3):
+            if index//width in (0, 1, height - 1, height - 2):
+                continue
+            block3.add(index)
+        else: continue
+
+    for index in block3:
+        if xw[index] == '#':
+            if index // width == 2:
+                # top border
+                if '~' in (xw[index - width], xw[index - width*2]):
+                    return -1
+                else:
+                    if xw[index - width] == '-':
+                        xw = setIndex(xw, index - width, '#')
+                    if xw[index - width*2] == '-':
+                        xw = setIndex(xw, index - width*2, '#')
+            if index // width == height - 3:
+                # bottom border
+                if '~' in (xw[index + width], xw[index + width*2]):
+                    return -1
+                else:
+                    if xw[index + width] == '-':
+                        xw = setIndex(xw, index + width, '#')
+                    if xw[index + width*2] == '-':
+                        xw = setIndex(xw, index + width*2, '#')
+            if index % width == 2:
+                # left edge
+                if '~' in (xw[index - 1], xw[index - 2]):
+                    return -1
+                else:
+                    if xw[index - 1] == '-':
+                        xw = setIndex(xw, index - 1, '#')
+                    if xw[index - 2] == '-':
+                        xw = setIndex(xw, index - 2, '#')
+            if index % width == width - 3:
+                if '~' in (xw[index + 1], xw[index + 2]):
+                    return -1
+                else:
+                    if xw[index + 1] == '-':
+                        xw = setIndex(xw, index + 1, '#')
+                    if xw[index + 2] == '-':
+                        xw = setIndex(xw, index + 2, '#')
+    return xw
+
+
 def addBlocks(xw, height, width, numBlocks):
     if height%2 + width%2 + numBlocks%2 == 3:
         # if height, width, and numBlocks are
         # odd, then you must place a block in the center
-        xw = setIndex(xw, int(len(xw)-1)/2, '#')
+        xw = setIndex(xw, int((len(xw)-1)/2), '#')
         numBlocks = numBlocks - 1
     else:
         # otherwise make sure not to put block at center
-        xw = setIndex(xw, int(len(xw)-1)/2, '~')
+        xw = setIndex(xw, int((len(xw)-1)/2), '~')
 
-    block3 = set() # 3rd blocks away from the border
-    for index in range(len(xw)):
-        if index//width in (3, height - 3):
-            block3.add(index)
-        elif index % width in (2, width - 3):
-            block3.add(index)
-        else: continue
-    print(block3)
+    xw = checkEdges(xw, width, height)
+    return xw
 
 
 # create structure
-fillInputs(height, width, hWords, vWords)
+xw = fillInputs(height, width, hWords, vWords)
+printXW(xw, width)
+print('')
+xw = protectBoard(xw)
+printXW(xw, width)
+print('')
+xw = palindromize(xw)
+printXW(xw, width)
+print('')
+xw = addBlocks(xw, height, width, numBlocks)
+printXW(xw, width)
