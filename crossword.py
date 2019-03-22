@@ -45,6 +45,7 @@ for arg in input:
 ##################
 # HELPER METHODS #
 
+
 def printXW(puzzle, width):
     for index in range(len(puzzle)):  # matr is a string in this case
         if index % width == 0:  # left side
@@ -53,6 +54,7 @@ def printXW(puzzle, width):
             print('{}\n'.format(puzzle[index]), end='')
         else:
             print('{} '.format(puzzle[index]), end='')
+    print('\n')
 
 
 def addVword(xw, vPos, hPos, word, width):
@@ -95,6 +97,12 @@ def addHword(xw, vPos, hPos, word, width):
 
 
 def setIndex(xw, index, character):
+    if xw == -1:
+        return xw
+    if xw[index] == character:
+        return xw
+    if xw[index] in ('~', '#'):
+        return -1
     return xw[:index] + character + xw[index + 1:]
 
 
@@ -131,56 +139,138 @@ def palindromize(xw):
     return xw
 
 
-def checkEdges(xw, width, height):
-    block3 = set() # 3rd blocks away from the border
+def checkEdges(xw, width):
     for index in range(len(xw)):
-        if index//width in (2, height - 3):
-            if index % width in (0, 1, width - 1, width - 2):
-                continue
-            block3.add(index)
-        elif index % width in (2, width - 3):
-            if index//width in (0, 1, height - 1, height - 2):
-                continue
-            block3.add(index)
-        else: continue
+        if index // width == 0:
+            # top row
+            if xw[index + width*2] == '#':
+                xw = setIndex(xw, index, '#')
+                xw = setIndex(xw, index + width, '#')
+                if xw == -1:
+                    return xw
+            elif xw[index + width] == '#':
+                xw = setIndex(xw, index, '#')
+                if xw == -1:
+                    return xw
+        elif index // width == width - 1:
+            # bottom row
+            if xw[index - width*2] == '#':
+                xw = setIndex(xw, index, '#')
+                xw = setIndex(xw, index - width, '#')
+                if xw == -1:
+                    return xw
+            elif xw[index - width] == '#':
+                if xw == -1:
+                    return xw
+        if index % width == 0:
+            # left column
+            if xw[index + 2] == '#':
+                xw = setIndex(xw, index, '#')
+                xw = setIndex(xw, index+1, '#')
+                if xw == -1:
+                    return xw
+            elif xw[index + 1] == '#':
+                xw = setIndex(xw, index, '#')
+                if xw == -1:
+                    return xw
+        elif index % width == width - 1:
+            # right column
+            if xw[index - 2] == '#':
+                xw = setIndex(xw, index, '#')
+                xw = setIndex(xw, index - 1, '#')
+                if xw == -1:
+                    return xw
+            elif xw[index - 1] == '#':
+                xw = setIndex(xw, index, '#')
+                if xw == -1:
+                    return xw
+    return xw
 
-    for index in block3:
-        if xw[index] == '#':
-            if index // width == 2:
-                # top border
-                if '~' in (xw[index - width], xw[index - width*2]):
-                    return -1
-                else:
-                    if xw[index - width] == '-':
-                        xw = setIndex(xw, index - width, '#')
-                    if xw[index - width*2] == '-':
+
+def checkRest(xw, width, blocks):
+    # could be done better with a lookup table like I did in the othello
+    # labs, but that would require more debugging and this works
+    for index in blocks:
+        checkInds = [index - width*3, index - width*2,
+                     index + width*3, index + width*2,
+                     index - 3, index - 2,
+                     index + 3, index + 2]
+        skipChecks = set()
+        for i in range(8):
+            if i in skipChecks: continue
+            if xw == -1: return -1
+            if 0 <= checkInds[i] < len(xw):
+                if xw[checkInds[i]] == '#':
+                    if i == 0:
                         xw = setIndex(xw, index - width*2, '#')
-            if index // width == height - 3:
-                # bottom border
-                if '~' in (xw[index + width], xw[index + width*2]):
-                    return -1
-                else:
-                    if xw[index + width] == '-':
-                        xw = setIndex(xw, index + width, '#')
-                    if xw[index + width*2] == '-':
+                        xw = setIndex(xw, index - width, '#')
+                        skipChecks.add(1)
+                    elif i == 1:
+                        xw = setIndex(xw, index - width, '#')
+                    elif i == 2:
                         xw = setIndex(xw, index + width*2, '#')
-            if index % width == 2:
-                # left edge
-                if '~' in (xw[index - 1], xw[index - 2]):
-                    return -1
-                else:
-                    if xw[index - 1] == '-':
-                        xw = setIndex(xw, index - 1, '#')
-                    if xw[index - 2] == '-':
+                        xw = setIndex(xw, index + width, '#')
+                        skipChecks.add(3)
+                    elif i == 3:
+                        xw = setIndex(xw, index + width, '#')
+                    elif i  == 4:
                         xw = setIndex(xw, index - 2, '#')
-            if index % width == width - 3:
-                if '~' in (xw[index + 1], xw[index + 2]):
-                    return -1
-                else:
-                    if xw[index + 1] == '-':
-                        xw = setIndex(xw, index + 1, '#')
-                    if xw[index + 2] == '-':
+                        xw = setIndex(xw, index - 1, '#')
+                        skipChecks.add(5)
+                    elif i == 5:
+                        xw = setIndex(xw, index - 1, '#')
+                    elif i == 6:
                         xw = setIndex(xw, index + 2, '#')
+                        xw = setIndex(xw, index + 1, '#')
+                        skipChecks.add(7)
+                    elif i == 7:
+                        xw = setIndex(xw, index + 1, '#')
+    return xw
+
+
+def checkConnected(xw, width, vPos, hPos, ch):
+    # fills out as much as it can reach
+    index = vPos*width + hPos
+    if 0 <= index < len(xw) and xw[index] == '-':
+        ch = xw[index]
+        xw = setIndex(xw, index, '*')
+        checkConnected(xw, width, vPos + 1, hPos, ch)
+        checkConnected(xw, width, vPos - 1, hPos, ch)
+        checkConnected(xw, width, vPos, hPos + 1, ch)
+        checkConnected(xw, width, vPos, hPos - 1, ch)
+    #printXW(xw, width)
+    return xw
+
+
+def isValid(xw, numBlocks, width):
+    placedBlocks = xw.count('#')
+    if placedBlocks > numBlocks: return 0
+    if checkConnected(xw, width, 0, 0, '-').count('*') != len(xw) - placedBlocks:
+        return 0
+    return 1
+
+
+def makeImplications(xw, width, numBlocks):
+    if xw == -1: return -1
+    printXW(xw, width)
+    xw = checkEdges(xw, width)
+    print('Check edges:')
+    if xw == -1: return -1
+    printXW(xw, width)
+    blockInds = {i for i in range(len(xw)) if xw[i] == '#'}
+    xw = checkRest(xw, width, blockInds)
+    if xw == -1: return -1
+    print('Check rest')
+    printXW(xw, width)
+    xw = palindromize(xw)
+    if xw == -1: return -1
+    print('Palindromize')
+    printXW(xw, width)
+    if not isValid(xw, numBlocks, width):
+        return -1
+    print('IS VALID')
+    print(xw)
+    printXW(xw, width)
     return xw
 
 
@@ -189,12 +279,25 @@ def addBlocks(xw, height, width, numBlocks):
         # if height, width, and numBlocks are
         # odd, then you must place a block in the center
         xw = setIndex(xw, int((len(xw)-1)/2), '#')
-        numBlocks = numBlocks - 1
+        blocksLeft = numBlocks - 1
     else:
         # otherwise make sure not to put block at center
         xw = setIndex(xw, int((len(xw)-1)/2), '~')
-
-    xw = checkEdges(xw, width, height)
+        blocksLeft = numBlocks
+    #availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
+    availableIndexes = {6}
+    length = len(xw)
+    while blocksLeft and availableIndexes:
+        newIndex = availableIndexes.pop()
+        print('NEW INDEX', newIndex)
+        newXW = setIndex(xw, newIndex, '#')
+        newXW = makeImplications(newXW, width, numBlocks)
+        if newXW == -1:
+            print('INDEX {} IS INVALID'.format(newIndex))
+            #availableIndexes.remove(length - newIndex - 1)
+        else:
+            xw = newXW
+            blocksLeft = numBlocks - xw.count('#')
     return xw
 
 
@@ -209,4 +312,5 @@ xw = palindromize(xw)
 printXW(xw, width)
 print('')
 xw = addBlocks(xw, height, width, numBlocks)
-printXW(xw, width)
+if xw != -1: printXW(xw, width)
+else: print('Impossible')
