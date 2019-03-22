@@ -228,24 +228,31 @@ def checkRest(xw, width, blocks):
     return xw
 
 
-def checkConnected(xw, width, vPos, hPos, ch):
-    # fills out as much as it can reach
+def checkConnected(xw, width, vPos, hPos, numSpaces):
     index = vPos*width + hPos
+    if xw == 1: return 1
+    if xw.count('*') == numSpaces:
+        return 1
     if 0 <= index < len(xw) and xw[index] == '-':
-        ch = xw[index]
         xw = setIndex(xw, index, '*')
-        checkConnected(xw, width, vPos + 1, hPos, ch)
-        checkConnected(xw, width, vPos - 1, hPos, ch)
-        checkConnected(xw, width, vPos, hPos + 1, ch)
-        checkConnected(xw, width, vPos, hPos - 1, ch)
-    #printXW(xw, width)
+        xw = checkConnected(xw, width, vPos + 1, hPos, numSpaces)
+        xw = checkConnected(xw, width, vPos - 1, hPos, numSpaces)
+        xw = checkConnected(xw, width, vPos, hPos + 1, numSpaces)
+        xw = checkConnected(xw, width, vPos, hPos - 1, numSpaces)
+    #if xw != 1: printXW(xw, width)
     return xw
 
 
 def isValid(xw, numBlocks, width):
     placedBlocks = xw.count('#')
-    if placedBlocks > numBlocks: return 0
-    if checkConnected(xw, width, 0, 0, '-').count('*') != len(xw) - placedBlocks:
+    if placedBlocks > numBlocks:
+        print('TOO MANY BLOCKS')
+        return 0
+    openSpaces = len(xw) - placedBlocks
+    v, h = xw.find('-')//width, xw.find('-') % width
+    numConnect = checkConnected(xw, width, v, h, openSpaces)
+    print('NumConnect: {}\nNum \'-\': {}'.format(numConnect, openSpaces))
+    if numConnect != 1:
         return 0
     return 1
 
@@ -284,8 +291,8 @@ def addBlocks(xw, height, width, numBlocks):
         # otherwise make sure not to put block at center
         xw = setIndex(xw, int((len(xw)-1)/2), '~')
         blocksLeft = numBlocks
-    #availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
-    availableIndexes = {6}
+    availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
+    #availableIndexes = {6}
     length = len(xw)
     while blocksLeft and availableIndexes:
         newIndex = availableIndexes.pop()
