@@ -231,53 +231,55 @@ def checkRest(xw, width, blocks):
 def checkConnected(xw, width, vPos, hPos, numSpaces):
     index = vPos*width + hPos
     if xw == 1: return 1
-    if xw.count('*') == numSpaces:
+    if xw.count('*') + xw.count('~') == numSpaces:
         return 1
     if 0 <= index < len(xw) and xw[index] == '-':
+        print('CONNECTING')
         xw = setIndex(xw, index, '*')
         xw = checkConnected(xw, width, vPos + 1, hPos, numSpaces)
         xw = checkConnected(xw, width, vPos - 1, hPos, numSpaces)
         xw = checkConnected(xw, width, vPos, hPos + 1, numSpaces)
         xw = checkConnected(xw, width, vPos, hPos - 1, numSpaces)
-    #if xw != 1: printXW(xw, width)
+    if xw != 1: printXW(xw, width)
     return xw
 
 
 def isValid(xw, numBlocks, width):
     placedBlocks = xw.count('#')
     if placedBlocks > numBlocks:
-        print('TOO MANY BLOCKS')
+        #print('TOO MANY BLOCKS')
         return 0
     openSpaces = len(xw) - placedBlocks
     v, h = xw.find('-')//width, xw.find('-') % width
     numConnect = checkConnected(xw, width, v, h, openSpaces)
-    print('NumConnect: {}\nNum \'-\': {}'.format(numConnect, openSpaces))
+    #print('NumConnect: {}\nNum \'-\': {}'.format(numConnect, openSpaces))
     if numConnect != 1:
+        print('NOT CONNECTED')
         return 0
     return 1
 
 
 def makeImplications(xw, width, numBlocks):
     if xw == -1: return -1
-    printXW(xw, width)
+    #printXW(xw, width)
     xw = checkEdges(xw, width)
-    print('Check edges:')
+    #print('Check edges:')
     if xw == -1: return -1
-    printXW(xw, width)
+    #printXW(xw, width)
     blockInds = {i for i in range(len(xw)) if xw[i] == '#'}
     xw = checkRest(xw, width, blockInds)
     if xw == -1: return -1
-    print('Check rest')
-    printXW(xw, width)
+    #print('Check rest')
+    #printXW(xw, width)
     xw = palindromize(xw)
     if xw == -1: return -1
-    print('Palindromize')
-    printXW(xw, width)
+    #print('Palindromize')
+    #printXW(xw, width)
     if not isValid(xw, numBlocks, width):
         return -1
-    print('IS VALID')
-    print(xw)
-    printXW(xw, width)
+    #print('IS VALID')
+    #print(xw)
+    #printXW(xw, width)
     return xw
 
 
@@ -292,32 +294,34 @@ def addBlocks(xw, height, width, numBlocks):
         xw = setIndex(xw, int((len(xw)-1)/2), '~')
         blocksLeft = numBlocks
     availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
-    #availableIndexes = {6}
+    #availableIndexes = {0}
     length = len(xw)
+    print(blocksLeft, availableIndexes)
     while blocksLeft and availableIndexes:
         newIndex = availableIndexes.pop()
-        print('NEW INDEX', newIndex)
+        #print('NEW INDEX', newIndex)
         newXW = setIndex(xw, newIndex, '#')
         newXW = makeImplications(newXW, width, numBlocks)
         if newXW == -1:
-            print('INDEX {} IS INVALID'.format(newIndex))
-            #availableIndexes.remove(length - newIndex - 1)
+            #print('INDEX {} IS INVALID'.format(newIndex))
+            availableIndexes.remove(length - newIndex - 1)
         else:
             xw = newXW
+            printXW(xw, width)
             blocksLeft = numBlocks - xw.count('#')
     return xw
 
 
 # create structure
 xw = fillInputs(height, width, hWords, vWords)
-printXW(xw, width)
-print('')
+#printXW(xw, width)
+#print('')
 xw = protectBoard(xw)
-printXW(xw, width)
-print('')
+#printXW(xw, width)
+#print('')
 xw = palindromize(xw)
-printXW(xw, width)
-print('')
+#printXW(xw, width)
+#print('')
 xw = addBlocks(xw, height, width, numBlocks)
 if xw != -1: printXW(xw, width)
 else: print('Impossible')
