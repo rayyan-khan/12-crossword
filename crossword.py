@@ -1,11 +1,12 @@
 import re
 import sys
+import random
 
 # crossword assignment
 
 # inputs
 input = sys.argv[1:]
-print('Input:', input)
+#print('Input:', input)
 
 height, width, numBlocks = 0, 0, 0
 wordDict = ''
@@ -192,7 +193,6 @@ def checkEdges(xw, width):
 def checkRest(xw, width, blocks):
     # could be done better with a lookup table like I did in the othello
     # labs, but that would require more debugging and this works
-    # print('BLOCKS', blocks)
     for index in blocks:
         checkInds = {index - width*3, index - width*2,
                      index + width*3, index + width*2}
@@ -241,15 +241,22 @@ def checkConnected(xw, width, vPos, hPos, numSpaces):
 
 
 def makeImplications(xw, width, numBlocks):
-    if xw == -1: return -1
-    xw = checkEdges(xw, width)
-    if xw == -1: return -1
-    blockInds = {i for i in range(len(xw)) if xw[i] == '#'}
-    xw = checkRest(xw, width, blockInds)
-    if xw == -1: return -1
-    xw = palindromize(xw)
-    if xw == -1: return -1
-    if xw.count('#') > numBlocks: return -1
+    prevBlocks = xw.count('#')
+    currBlocks = 0
+    limit = 10
+    while prevBlocks != currBlocks and limit > 0:
+        prevBlocks = currBlocks
+        if xw == -1: return -1
+        xw = checkEdges(xw, width)
+        if xw == -1: return -1
+        blockInds = {i for i in range(len(xw)) if xw[i] == '#'}
+        xw = checkRest(xw, width, blockInds)
+        if xw == -1: return -1
+        xw = palindromize(xw)
+        if xw == -1: return -1
+        if xw.count('#') > numBlocks: return -1
+        currBlocks = xw.count('#')
+        limit = limit - 1
     return xw
 
 
@@ -264,12 +271,18 @@ def addBlocks(xw, height, width, numBlocks):
     else:
         # otherwise make sure not to put block at center
         xw = setIndex(xw, int((len(xw) - 1) / 2), '~')
-    availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
+    availableIndexes = [i for i in range(len(xw)) if xw[i] == '-']
+    random.shuffle(availableIndexes)
     length = len(xw)
-    while availableIndexes:
+    blocksLeft = numBlocks - xw.count('#')
+    while availableIndexes and blocksLeft:
         newIndex = availableIndexes.pop()
+        if xw[newIndex] == '#':
+            while xw[newIndex] == '#':
+                newIndex = availableIndexes.pop()
         if len(availableIndexes) == 0:
-            print("EMPTIED AVAILABLE INDEXES BlocksLeft {} availableIndexes {}".format(blocksLeft, availableIndexes))
+            continue
+            #print("EMPTIED AVAILABLE INDEXES")
         newXW = setIndex(xw, newIndex, '#')
         newXW = makeImplications(newXW, width, numBlocks)
         if newXW == -1:
@@ -277,22 +290,25 @@ def addBlocks(xw, height, width, numBlocks):
                 availableIndexes.remove(length - newIndex - 1)
         else:
             xw = newXW
+            printXW(xw, width)
             if xw.count('#') == numBlocks:
                 xw = xw.replace('~', '-')
                 return xw
+            blocksLeft = numBlocks - xw.count('#')
     return xw
 
 
 def makeAttempts(xw, height, width, numBlocks):
-    attempts = 1
+    attempts = 200
     while attempts > 0:
-        xw = addBlocks(xw, height, width, numBlocks)
-        openSpaces = len(xw) - numBlocks
-        v, h = xw.find('-') // width, xw.find('-') % width
-        numConnect = checkConnected(xw, width, v, h, openSpaces)
-        #print(numConnect)
+        newXW = addBlocks(xw, height, width, numBlocks)
+        #printXW(newXW, width)
+        newXW = newXW.replace('~', '-')
+        openSpaces = len(newXW) - numBlocks
+        v, h = newXW.find('-') // width, newXW.find('-') % width
+        numConnect = checkConnected(newXW, width, v, h, openSpaces)
         if numConnect.count('*') == openSpaces:
-            return xw
+            return newXW
         attempts = attempts - 1
     return ''
 
@@ -301,9 +317,9 @@ def makeAttempts(xw, height, width, numBlocks):
 xw = fillInputs(height, width, hWords, vWords)
 xw = protectBoard(xw)
 xw = palindromize(xw)
+printXW(xw, width)
 if xw != -1:
     xw = makeAttempts(xw, height, width, numBlocks)
 if xw != -1:
-    xw = xw.replace('~', '-')
     printXW(xw, width)
 else: print('Impossible')
