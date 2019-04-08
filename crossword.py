@@ -1,7 +1,7 @@
 import re
 import sys
 
-# crossword assignment v1 due 3/15
+# crossword assignment
 
 # inputs
 input = sys.argv[1:]
@@ -58,40 +58,42 @@ def printXW(puzzle, width):
 
 
 def addVword(xw, vPos, hPos, word, width):
+    if xw == -1: return -1
     wordIndexes = []
-    wordList = [letter for letter in word][::-1]
     for k in range(len(word)):
         index = (vPos + k)*width + hPos
         if index > len(xw)-1:
-            print('Word doesn\'t fit in location. (V)')
+            print('{} doesn\'t fit in location {}. (V)'.format(word, index))
             return -1
         wordIndexes.append(index)
-    checkIndexes = {xw[i] for i in wordIndexes}
-    if checkIndexes != {'-'}:
-        print('Can\'t place word over non-empty space. (V)')
-        return -1
-    else:
-        newXW = ''
-        for k in range(len(xw)):
-            if k not in wordIndexes:
-                newXW += xw[k:k+1]
+    newXW = ''
+    for k in range(len(wordIndexes)):
+        if xw[wordIndexes[k]] not in ('-', '~'):
+            if xw[wordIndexes[k]] == word[k]:
+                continue
             else:
-                newXW += wordList.pop()
-        return newXW
+                print('Can\'t overlap {} from {} over {} at index {}.'.format(word[k], word, xw[wordIndexes[k]], wordIndexes[k]))
+                return -1
+        newXW = xw[:wordIndexes[k]] + word[k] + xw[wordIndexes[k]+1:]
+    return newXW
 
 
 def addHword(xw, vPos, hPos, word, width):
+    #printXW(xw, width)
     # assumes that the word fits
     # (for now)
+    if xw == -1: return -1
     startInd = vPos*width + hPos
-    endInd = startInd + width
-    if startInd//width != endInd//width:
-        print('Word doesn\'t fit in location (H).')
+    endInd = startInd + len(word)
+    if startInd//width != (endInd-1)//width:
+        print('Word {} doesn\'t fit in location (H).'.format(word))
         return -1
     for index in range(startInd, endInd + 1):
-        if xw[index] != '-' or '~':
-            print('Can\'t add word over non-empty space (H).')
-            return -1
+        if xw[index] not in ('-', '~'):
+            if xw[index] == word[startInd - index]:
+                continue
+            else:
+                return -1
     newXW = xw[:startInd] + word + xw[endInd:]
     return newXW
 
@@ -190,138 +192,118 @@ def checkEdges(xw, width):
 def checkRest(xw, width, blocks):
     # could be done better with a lookup table like I did in the othello
     # labs, but that would require more debugging and this works
+    # print('BLOCKS', blocks)
     for index in blocks:
-        checkInds = [index - width*3, index - width*2,
-                     index + width*3, index + width*2,
-                     index - 3, index - 2,
+        checkInds = {index - width*3, index - width*2,
+                     index + width*3, index + width*2}
+        horizontal = [index - 3, index - 2,
                      index + 3, index + 2]
-        skipChecks = set()
-        for i in range(8):
-            if i in skipChecks: continue
+        for h in horizontal:
+            if h//width == index//width: checkInds.add(h)
+        for i in checkInds:
             if xw == -1: return -1
-            if 0 <= checkInds[i] < len(xw):
-                if xw[checkInds[i]] == '#':
-                    if i == 0:
+            if 0 <= i < len(xw):
+                if xw[i] == '#':
+                    if i == index-width*3:
                         xw = setIndex(xw, index - width*2, '#')
                         xw = setIndex(xw, index - width, '#')
-                        skipChecks.add(1)
-                    elif i == 1:
+                    elif i == index-width*2:
                         xw = setIndex(xw, index - width, '#')
-                    elif i == 2:
+                    elif i == +width*3:
                         xw = setIndex(xw, index + width*2, '#')
                         xw = setIndex(xw, index + width, '#')
-                        skipChecks.add(3)
-                    elif i == 3:
+                    elif i == index+width*2:
                         xw = setIndex(xw, index + width, '#')
-                    elif i  == 4:
+                    elif i  == index-3:
                         xw = setIndex(xw, index - 2, '#')
                         xw = setIndex(xw, index - 1, '#')
-                        skipChecks.add(5)
-                    elif i == 5:
+                    elif i == index-2:
                         xw = setIndex(xw, index - 1, '#')
-                    elif i == 6:
+                    elif i == index+3:
                         xw = setIndex(xw, index + 2, '#')
                         xw = setIndex(xw, index + 1, '#')
-                        skipChecks.add(7)
-                    elif i == 7:
+                    elif i == index+2:
                         xw = setIndex(xw, index + 1, '#')
     return xw
 
 
 def checkConnected(xw, width, vPos, hPos, numSpaces):
     index = vPos*width + hPos
-    if xw == 1: return 1
-    if xw.count('*') + xw.count('~') == numSpaces:
-        return 1
     if 0 <= index < len(xw) and xw[index] == '-':
-        print('CONNECTING')
         xw = setIndex(xw, index, '*')
         xw = checkConnected(xw, width, vPos + 1, hPos, numSpaces)
         xw = checkConnected(xw, width, vPos - 1, hPos, numSpaces)
-        xw = checkConnected(xw, width, vPos, hPos + 1, numSpaces)
-        xw = checkConnected(xw, width, vPos, hPos - 1, numSpaces)
-    if xw != 1: printXW(xw, width)
+        if (hPos + 1) % width:
+            xw = checkConnected(xw, width, vPos, hPos + 1, numSpaces)
+        if (hPos - 1) % width != width - 1:
+            xw = checkConnected(xw, width, vPos, hPos - 1, numSpaces)
     return xw
-
-
-def isValid(xw, numBlocks, width):
-    placedBlocks = xw.count('#')
-    if placedBlocks > numBlocks:
-        #print('TOO MANY BLOCKS')
-        return 0
-    openSpaces = len(xw) - placedBlocks
-    v, h = xw.find('-')//width, xw.find('-') % width
-    numConnect = checkConnected(xw, width, v, h, openSpaces)
-    #print('NumConnect: {}\nNum \'-\': {}'.format(numConnect, openSpaces))
-    if numConnect != 1:
-        print('NOT CONNECTED')
-        return 0
-    return 1
 
 
 def makeImplications(xw, width, numBlocks):
     if xw == -1: return -1
-    #printXW(xw, width)
     xw = checkEdges(xw, width)
-    #print('Check edges:')
     if xw == -1: return -1
-    #printXW(xw, width)
     blockInds = {i for i in range(len(xw)) if xw[i] == '#'}
     xw = checkRest(xw, width, blockInds)
     if xw == -1: return -1
-    #print('Check rest')
-    #printXW(xw, width)
     xw = palindromize(xw)
     if xw == -1: return -1
-    #print('Palindromize')
-    #printXW(xw, width)
-    if not isValid(xw, numBlocks, width):
-        return -1
-    #print('IS VALID')
-    #print(xw)
-    #printXW(xw, width)
+    if xw.count('#') > numBlocks: return -1
     return xw
 
 
 def addBlocks(xw, height, width, numBlocks):
+    if height*width == numBlocks:
+        xw = '#'*(height*width)
+        return xw
     if height%2 + width%2 + numBlocks%2 == 3:
         # if height, width, and numBlocks are
         # odd, then you must place a block in the center
         xw = setIndex(xw, int((len(xw)-1)/2), '#')
-        blocksLeft = numBlocks - 1
     else:
         # otherwise make sure not to put block at center
-        xw = setIndex(xw, int((len(xw)-1)/2), '~')
-        blocksLeft = numBlocks
+        xw = setIndex(xw, int((len(xw) - 1) / 2), '~')
     availableIndexes = {i for i in range(len(xw)) if xw[i] == '-'}
-    #availableIndexes = {0}
     length = len(xw)
-    print(blocksLeft, availableIndexes)
-    while blocksLeft and availableIndexes:
+    while availableIndexes:
         newIndex = availableIndexes.pop()
-        #print('NEW INDEX', newIndex)
+        if len(availableIndexes) == 0:
+            print("EMPTIED AVAILABLE INDEXES BlocksLeft {} availableIndexes {}".format(blocksLeft, availableIndexes))
         newXW = setIndex(xw, newIndex, '#')
         newXW = makeImplications(newXW, width, numBlocks)
         if newXW == -1:
-            #print('INDEX {} IS INVALID'.format(newIndex))
-            availableIndexes.remove(length - newIndex - 1)
+            if length - newIndex - 1 in availableIndexes:
+                availableIndexes.remove(length - newIndex - 1)
         else:
             xw = newXW
-            printXW(xw, width)
-            blocksLeft = numBlocks - xw.count('#')
+            if xw.count('#') == numBlocks:
+                xw = xw.replace('~', '-')
+                return xw
     return xw
+
+
+def makeAttempts(xw, height, width, numBlocks):
+    attempts = 1
+    while attempts > 0:
+        xw = addBlocks(xw, height, width, numBlocks)
+        openSpaces = len(xw) - numBlocks
+        v, h = xw.find('-') // width, xw.find('-') % width
+        numConnect = checkConnected(xw, width, v, h, openSpaces)
+        #print(numConnect)
+        if numConnect.count('*') == openSpaces:
+            return xw
+        attempts = attempts - 1
+    return ''
 
 
 # create structure
 xw = fillInputs(height, width, hWords, vWords)
-#printXW(xw, width)
-#print('')
 xw = protectBoard(xw)
-#printXW(xw, width)
-#print('')
 xw = palindromize(xw)
-#printXW(xw, width)
-#print('')
-xw = addBlocks(xw, height, width, numBlocks)
-if xw != -1: printXW(xw, width)
+if xw != -1:
+    xw = makeAttempts(xw, height, width, numBlocks)
+if xw != -1:
+    xw = xw.replace('~', '-')
+    printXW(xw, width)
 else: print('Impossible')
